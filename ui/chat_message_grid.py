@@ -1,43 +1,43 @@
-import wx
+from wx import FlexGridSizer, StaticText, TextCtrl, Button, ComboBox, EXPAND, EVT_BUTTON, Font, OK, ICON_ERROR, MessageBox, ID_ANY, TE_MULTILINE, TE_READONLY, DEFAULT, NORMAL, CallAfter, RED, BLUE
 from utils.utils import model_choices
 import threading
 from service.api_client import ApiClient
-import wx.richtext as rt
+from wx.richtext import RichTextAttr, RichTextCtrl
 
 
-class ChatMessageGrid(wx.FlexGridSizer):
+class ChatMessageGrid(FlexGridSizer):
     def __init__(self, panel):
         super().__init__(6, 2, 9, 25)
         
-        chatMessageApiKeyLabel = wx.StaticText(panel, label="API key")
-        chatMessageApiKeyInput = wx.TextCtrl(panel)
+        chat_message_apikey_label = StaticText(panel, label="API key")
+        chat_message_apikey_input = TextCtrl(panel)
 
-        chatMessageHistoricLabel = wx.StaticText(panel, label="Chat", pos=(1, 0))
-        chatMessageHistoricInput = rt.RichTextCtrl(panel, wx.ID_ANY, style=wx.TE_MULTILINE|wx.TE_READONLY)
+        chat_message_historic_label = StaticText(panel, label="Chat", pos=(1, 0))
+        chat_message_historic_input = RichTextCtrl(panel, ID_ANY, style=TE_MULTILINE|TE_READONLY)
 
-        chatMessageSystemLabel = wx.StaticText(panel, label="System")
-        chatMessageSystemInput = wx.TextCtrl(panel)
+        chat_message_system_label = StaticText(panel, label="System")
+        chat_message_system_input = TextCtrl(panel)
 
-        chatMessageLabel = wx.StaticText(panel, label="your message")
-        chatMessageText = wx.TextCtrl(panel, style=wx.TE_MULTILINE)
-        chatMessageButton = wx.Button(panel, label="send")
+        chat_message_label = StaticText(panel, label="your message")
+        chat_message_text = TextCtrl(panel, style=TE_MULTILINE)
+        chat_message_button = Button(panel, label="send")
 
-        modelChoiceLabel = wx.StaticText(panel, label="model")
-        modelChoiceBox = wx.ComboBox(panel, value="gpt-4", choices=model_choices)
+        model_choice_label = StaticText(panel, label="model")
+        model_choice_box = ComboBox(panel, value="gpt-4", choices=model_choices)
 
         self.AddMany(
             [
-                (chatMessageApiKeyLabel),
-                (chatMessageApiKeyInput, 1, wx.EXPAND),
-                (chatMessageSystemLabel),
-                (chatMessageSystemInput, 1, wx.EXPAND),
-                (chatMessageHistoricLabel, 1, wx.EXPAND),
-                (chatMessageHistoricInput, 1, wx.EXPAND),
-                (chatMessageLabel, wx.EXPAND),
-                (chatMessageText, 1, wx.EXPAND),
-                (modelChoiceLabel, wx.EXPAND),
-                (modelChoiceBox, wx.EXPAND),
-                (chatMessageButton, wx.EXPAND),
+                chat_message_apikey_label,
+                (chat_message_apikey_input, 1, EXPAND),
+                chat_message_system_label,
+                (chat_message_system_input, 1, EXPAND),
+                (chat_message_historic_label, 1, EXPAND),
+                (chat_message_historic_input, 1, EXPAND),
+                (chat_message_label, EXPAND),
+                (chat_message_text, 1, EXPAND),
+                (model_choice_label, EXPAND),
+                (model_choice_box, EXPAND),
+                (chat_message_button, EXPAND),
             ]
         )
 
@@ -45,16 +45,16 @@ class ChatMessageGrid(wx.FlexGridSizer):
         self.AddGrowableRow(3, 1)
         self.AddGrowableCol(1, 1)
 
-        chatMessageButton.Bind(
-            wx.EVT_BUTTON,
+        chat_message_button.Bind(
+            EVT_BUTTON,
             lambda event: self.onClick(
                 event,
-                chatMessageSystemInput,
-                chatMessageApiKeyInput,
-                chatMessageHistoricInput,
-                chatMessageText,
-                modelChoiceBox,
-                chatMessageButton
+                chat_message_system_input,
+                chat_message_apikey_input,
+                chat_message_historic_input,
+                chat_message_text,
+                model_choice_box,
+                chat_message_button
             ),
         )
         
@@ -65,42 +65,42 @@ class ChatMessageGrid(wx.FlexGridSizer):
 
         messages.append({"role": "assistant", "content": answer})
 
-        blue_font = wx.Font(12, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False)
-        blue_text_attr = rt.RichTextAttr()
-        blue_text_attr.SetTextColour(wx.BLUE)
+        blue_font = Font(12, DEFAULT, NORMAL, NORMAL, False)
+        blue_text_attr = RichTextAttr()
+        blue_text_attr.SetTextColour(BLUE)
         blue_text_attr.SetFont(blue_font)
         
-        red_font = wx.Font(12, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False)
-        red_text_attr = rt.RichTextAttr()
-        red_text_attr.SetTextColour(wx.RED)
+        red_font = Font(12, DEFAULT, NORMAL, NORMAL, False)
+        red_text_attr = RichTextAttr()
+        red_text_attr.SetTextColour(RED)
         red_text_attr.SetFont(red_font)
         
         # update the UI
-        wx.CallAfter(chatMessageHistoricInput.BeginStyle, blue_text_attr)
-        wx.CallAfter(chatMessageHistoricInput.WriteText, "User: " + message + "\n")
-        wx.CallAfter(chatMessageHistoricInput.EndStyle)
+        CallAfter(chatMessageHistoricInput.BeginStyle, blue_text_attr)
+        CallAfter(chatMessageHistoricInput.WriteText, "User: " + message + "\n")
+        CallAfter(chatMessageHistoricInput.EndStyle)
         
-        wx.CallAfter(chatMessageHistoricInput.BeginStyle, red_text_attr)
-        wx.CallAfter(chatMessageHistoricInput.WriteText, "Assistant: " + answer + "\n")
-        wx.CallAfter(chatMessageHistoricInput.EndStyle)
-        wx.CallAfter(chatMessageHistoricInput.ShowPosition, chatMessageHistoricInput.GetLastPosition())
+        CallAfter(chatMessageHistoricInput.BeginStyle, red_text_attr)
+        CallAfter(chatMessageHistoricInput.WriteText, "Assistant: " + answer + "\n")
+        CallAfter(chatMessageHistoricInput.EndStyle)
+        CallAfter(chatMessageHistoricInput.ShowPosition, chatMessageHistoricInput.GetLastPosition())
         
         button.Enable()
 
     def onClick(
         self,
         event,
-        chatMessageSystemInput: wx.TextCtrl,
-        chatMessageApiKeyInput: wx.TextCtrl,
-        chatMessageHistoricInput: rt.RichTextCtrl,
-        chatMessageText: wx.TextCtrl,
-        modelChoiceBox: wx.ComboBox,
-        button: wx.Button
+        chatMessageSystemInput: TextCtrl,
+        chatMessageApiKeyInput: TextCtrl,
+        chatMessageHistoricInput: RichTextCtrl,
+        chatMessageText: TextCtrl,
+        modelChoiceBox: ComboBox,
+        button: Button
     ):
         if not len(chatMessageApiKeyInput.GetValue().strip()):
-            wx.MessageBox("API key is empty!", "Error", wx.OK | wx.ICON_ERROR)
+            MessageBox("API key is empty!", "Error", OK | ICON_ERROR)
         elif not len(chatMessageText.GetValue().strip()):
-            wx.MessageBox("type something please!", "Error", wx.OK | wx.ICON_ERROR)
+            MessageBox("type something please!", "Error", OK | ICON_ERROR)
         else:
             apiKey = chatMessageApiKeyInput.GetValue().strip()
             message = chatMessageText.GetValue().strip()
