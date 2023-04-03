@@ -7,12 +7,12 @@ class ApiClient():
 
     def complete(self, messages, model, max_tokens=1000, temperature=0.7):
         try:
-            openai.api_key =self.apiKey
+            openai.api_key = self.apiKey
 
             response = openai.ChatCompletion.create(
-                model=model,
-                max_tokens=max_tokens,
-                temperature=temperature,
+                model = model,
+                max_tokens = max_tokens,
+                temperature = temperature,
                 messages = messages
             )
 
