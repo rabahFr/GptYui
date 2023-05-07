@@ -1,8 +1,9 @@
-from wx import FlexGridSizer, StaticText, TextCtrl, Button, ComboBox, EXPAND, EVT_BUTTON, Font, OK, ICON_ERROR, MessageBox, ID_ANY, TE_MULTILINE, TE_READONLY, DEFAULT, NORMAL, CallAfter, RED, BLUE
+from wx import FlexGridSizer, StaticText, TextCtrl, Button, ComboBox, EXPAND, EVT_BUTTON, Font, OK, ICON_ERROR, MessageBox, ID_ANY, TE_MULTILINE, TE_READONLY, DEFAULT, NORMAL, CallAfter, WHITE, Colour, BLACK, BORDER_DOUBLE
 from utils.utils import model_choices
+from ui.chat_displayer import ChatDisplayer
 import threading
 from service.api_client import ApiClient
-from wx.richtext import RichTextAttr, RichTextCtrl
+from wx.richtext import RichTextAttr, TextBoxAttr, TextAttrDimension
 
 
 class ChatMessageGrid(FlexGridSizer):
@@ -12,8 +13,8 @@ class ChatMessageGrid(FlexGridSizer):
         chat_message_apikey_label = StaticText(panel, label="API key")
         chat_message_apikey_input = TextCtrl(panel)
 
-        chat_message_historic_label = StaticText(panel, label="Chat", pos=(1, 0))
-        chat_message_historic_input = RichTextCtrl(panel, ID_ANY, style=TE_MULTILINE|TE_READONLY)
+        chat_displayer_label = StaticText(panel, label="Chat", pos=(1, 0))
+        chat_displayer_input = ChatDisplayer(panel, ID_ANY, style=TE_MULTILINE|TE_READONLY)
 
         chat_message_system_label = StaticText(panel, label="System")
         chat_message_system_input = TextCtrl(panel)
@@ -31,8 +32,8 @@ class ChatMessageGrid(FlexGridSizer):
                 (chat_message_apikey_input, 1, EXPAND),
                 chat_message_system_label,
                 (chat_message_system_input, 1, EXPAND),
-                (chat_message_historic_label, 1, EXPAND),
-                (chat_message_historic_input, 1, EXPAND),
+                (chat_displayer_label, 1, EXPAND),
+                (chat_displayer_input, 1, EXPAND),
                 (chat_message_label, EXPAND),
                 (chat_message_text, 1, EXPAND),
                 (model_choice_label, EXPAND),
@@ -51,64 +52,52 @@ class ChatMessageGrid(FlexGridSizer):
                 event,
                 chat_message_system_input,
                 chat_message_apikey_input,
-                chat_message_historic_input,
+                chat_displayer_input,
                 chat_message_text,
                 model_choice_box,
                 chat_message_button
             ),
         )
         
-    def completeRequest(self, messages, model, apiKey, chatMessageHistoricInput, message, button):
+    def completeRequest(self, messages, model, apiKey, chat_displayer_input, message, button):
         # call the service
         client = ApiClient(apiKey)
         answer = client.complete(messages, model=model)
 
         messages.append({"role": "assistant", "content": answer})
 
-        blue_font = Font(12, DEFAULT, NORMAL, NORMAL, False)
-        blue_text_attr = RichTextAttr()
-        blue_text_attr.SetTextColour(BLUE)
-        blue_text_attr.SetFont(blue_font)
-        
-        red_font = Font(12, DEFAULT, NORMAL, NORMAL, False)
-        red_text_attr = RichTextAttr()
-        red_text_attr.SetTextColour(RED)
-        red_text_attr.SetFont(red_font)
-        
+        userMessage = "User: " + message + "\n"
+        aiMessage = "Assistant: " + answer + "\n"
+
         # update the UI
-        CallAfter(chatMessageHistoricInput.BeginStyle, blue_text_attr)
-        CallAfter(chatMessageHistoricInput.WriteText, "User: " + message + "\n")
-        CallAfter(chatMessageHistoricInput.EndStyle)
-        
-        CallAfter(chatMessageHistoricInput.BeginStyle, red_text_attr)
-        CallAfter(chatMessageHistoricInput.WriteText, "Assistant: " + answer + "\n")
-        CallAfter(chatMessageHistoricInput.EndStyle)
-        CallAfter(chatMessageHistoricInput.ShowPosition, chatMessageHistoricInput.GetLastPosition())
-        
+        CallAfter(chat_displayer_input.addMessage, userMessage, 176, 210, 167)
+        CallAfter(chat_displayer_input.addMessage, aiMessage, 52, 62, 66)
+
+        # re enable the button
         button.Enable()
 
     def onClick(
         self,
         event,
-        chatMessageSystemInput: TextCtrl,
-        chatMessageApiKeyInput: TextCtrl,
-        chatMessageHistoricInput: RichTextCtrl,
-        chatMessageText: TextCtrl,
-        modelChoiceBox: ComboBox,
+        chat_message_system_input: TextCtrl,
+        chat_message_apikey_input: TextCtrl,
+        chat_message_historic_input: ChatDisplayer,
+        chat_message_text: TextCtrl,
+        model_choice_box: ComboBox,
         button: Button
     ):
-        if not len(chatMessageApiKeyInput.GetValue().strip()):
+        if not len(chat_message_apikey_input.GetValue().strip()):
             MessageBox("API key is empty!", "Error", OK | ICON_ERROR)
-        elif not len(chatMessageText.GetValue().strip()):
+        elif not len(chat_message_text.GetValue().strip()):
             MessageBox("type something please!", "Error", OK | ICON_ERROR)
         else:
-            apiKey = chatMessageApiKeyInput.GetValue().strip()
-            message = chatMessageText.GetValue().strip()
+            apiKey = chat_message_apikey_input.GetValue().strip()
+            message = chat_message_text.GetValue().strip()
 
             messages = [
                 {
                     "role": "system",
-                    "content": chatMessageSystemInput.GetValue().strip(),
+                    "content": chat_message_system_input.GetValue().strip(),
                 },
             ]
             messages.append({"role": "user", "content": message})
@@ -117,5 +106,5 @@ class ChatMessageGrid(FlexGridSizer):
             button.Disable()
 
             # create a thread to run the API call
-            t = threading.Thread(target=self.completeRequest, args=(messages, modelChoiceBox.GetValue(), apiKey, chatMessageHistoricInput, message, button))
+            t = threading.Thread(target=self.completeRequest, args=(messages, model_choice_box.GetValue(), apiKey, chat_message_historic_input, message, button))
             t.start()
