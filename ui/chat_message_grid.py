@@ -1,20 +1,20 @@
-from wx import FlexGridSizer, StaticText, TextCtrl, Button, ComboBox, EXPAND, EVT_BUTTON, Font, OK, ICON_ERROR, MessageBox, ID_ANY, TE_MULTILINE, TE_READONLY, DEFAULT, NORMAL, CallAfter, WHITE, Colour, BLACK, BORDER_DOUBLE
+from wx import FlexGridSizer, StaticText, TextCtrl, Button, ComboBox, EXPAND, EVT_BUTTON, OK, ICON_ERROR, MessageBox, \
+    ID_ANY, TE_MULTILINE, TE_READONLY, CallAfter
 from utils.utils import model_choices
 from ui.chat_displayer import ChatDisplayer
 import threading
 from service.api_client import ApiClient
-from wx.richtext import RichTextAttr, TextBoxAttr, TextAttrDimension
 
 
 class ChatMessageGrid(FlexGridSizer):
     def __init__(self, panel):
         super().__init__(6, 2, 9, 25)
-        
+
         chat_message_apikey_label = StaticText(panel, label="API key")
         chat_message_apikey_input = TextCtrl(panel)
 
         chat_displayer_label = StaticText(panel, label="Chat", pos=(1, 0))
-        chat_displayer_input = ChatDisplayer(panel, ID_ANY, style=TE_MULTILINE|TE_READONLY)
+        chat_displayer_input = ChatDisplayer(panel, ID_ANY, style=TE_MULTILINE | TE_READONLY)
 
         chat_message_system_label = StaticText(panel, label="System")
         chat_message_system_input = TextCtrl(panel)
@@ -48,7 +48,7 @@ class ChatMessageGrid(FlexGridSizer):
 
         chat_message_button.Bind(
             EVT_BUTTON,
-            lambda event: self.onClick(
+            lambda event: self.on_click(
                 event,
                 chat_message_system_input,
                 chat_message_apikey_input,
@@ -58,53 +58,44 @@ class ChatMessageGrid(FlexGridSizer):
                 chat_message_button
             ),
         )
-        
-    def completeRequest(self, messages, model, apiKey, chat_displayer_input, message, button):
+
+    def complete_request(self, message, system_setting, model, apiKey, chat_displayer_input, button):
         # call the service
         client = ApiClient(apiKey)
-        answer = client.complete(messages, model=model)
+        answer = client.complete(message, system_setting=system_setting, model=model)
 
-        messages.append({"role": "assistant", "content": answer})
-
-        userMessage = "User: " + message + "\n"
-        aiMessage = "Assistant: " + answer + "\n"
+        user_message = "User: " + message + "\n"
+        ai_message = "Assistant: " + answer + "\n"
 
         # update the UI
-        CallAfter(chat_displayer_input.addMessage, userMessage, 176, 210, 167)
-        CallAfter(chat_displayer_input.addMessage, aiMessage, 52, 62, 66)
+        CallAfter(chat_displayer_input.addMessage, user_message, 176, 210, 167)
+        CallAfter(chat_displayer_input.addMessage, ai_message, 52, 62, 66)
 
         # re enable the button
         button.Enable()
 
-    def onClick(
-        self,
-        event,
-        chat_message_system_input: TextCtrl,
-        chat_message_apikey_input: TextCtrl,
-        chat_message_historic_input: ChatDisplayer,
-        chat_message_text: TextCtrl,
-        model_choice_box: ComboBox,
-        button: Button
+    def on_click(
+            self,
+            event,
+            chat_message_system_input: TextCtrl,
+            chat_message_apikey_input: TextCtrl,
+            chat_message_historic_input: ChatDisplayer,
+            chat_message_text: TextCtrl,
+            model_choice_box: ComboBox,
+            button: Button
     ):
         if not len(chat_message_apikey_input.GetValue().strip()):
             MessageBox("API key is empty!", "Error", OK | ICON_ERROR)
         elif not len(chat_message_text.GetValue().strip()):
             MessageBox("type something please!", "Error", OK | ICON_ERROR)
         else:
-            apiKey = chat_message_apikey_input.GetValue().strip()
+            api_key = chat_message_apikey_input.GetValue().strip()
             message = chat_message_text.GetValue().strip()
-
-            messages = [
-                {
-                    "role": "system",
-                    "content": chat_message_system_input.GetValue().strip(),
-                },
-            ]
-            messages.append({"role": "user", "content": message})
-
-
+            system_setting = chat_message_system_input.GetValue().strip()
+            model = model_choice_box.GetValue()
             button.Disable()
 
             # create a thread to run the API call
-            t = threading.Thread(target=self.completeRequest, args=(messages, model_choice_box.GetValue(), apiKey, chat_message_historic_input, message, button))
+            t = threading.Thread(target=self.complete_request, args=(
+                message, system_setting, model, api_key, chat_message_historic_input, button))
             t.start()
